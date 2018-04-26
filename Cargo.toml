@@ -1,0 +1,12 @@
+[package]
+
+name = "lsk-shorty"
+version = "0.0.1"
+authors = [ "4fryn <rust@4fry.net" ]
+
+[dependencies]
+
+bip39 = "0.5.0"
+chrono = "0.4.2"
+rust-crypto = "0.2.36"
+ethereum-types = "0.3.1"
