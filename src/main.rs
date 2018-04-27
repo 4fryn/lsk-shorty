@@ -18,10 +18,12 @@
 extern crate bip39;
 extern crate crypto;
 extern crate chrono;
+extern crate timeago;
 extern crate ethereum_types;
 
 use std::u64;
 use std::thread;
+use std::time::Duration;
 use bip39::{Language, Mnemonic, MnemonicType};
 use chrono::Utc;
 use crypto::ed25519;
@@ -61,15 +63,39 @@ fn brute_force(id: i32) {
     let (length, phrase, address) = generate_new_account();
 
     // Only print short phrases to standard-out
-    if length < target || length < 10 {
+    if length < target || length < 12 {
       target = length;
       let duration = Utc::now() - start;
       let elapsed: f64 = duration.num_seconds() as f64;
       let mut speed: f64 = counter as f64;
       speed = speed / elapsed;
-      println!("#{:?}\t{:?}\t{:?}L\t{:?}\t{:?}\t{:.3}/s/t", id, length, address, phrase, counter, speed);
+      let (seconds, nanos) = calculate_probability_time(speed, target - 1);
+      let time_to_target = timeago::format_5chars(Duration::new(seconds, nanos));
+      println!("#{:?}\t*** FOUND TARGET {:?}; next target: {:?} in ~{:?}.\t{:?} iterations, {:.3}/s/t", id, target, target - 1, time_to_target, counter, speed);
+      println!("\t{:?}\t{:?}L\t{:?}\n", length, address, phrase);
+    }
+
+    // Print regular progress updates
+    if counter % 1_000_000 == 0 {
+      let duration = Utc::now() - start;
+      let elapsed: f64 = duration.num_seconds() as f64;
+      let mut speed: f64 = counter as f64;
+      speed = speed / elapsed;
+      let (seconds, nanos) = calculate_probability_time(speed, target - 1);
+      let time_to_target = timeago::format_5chars(Duration::new(seconds, nanos));
+      println!("#{:?}\t\t... still working; next target: {:?} in ~{:?}.\t{:?} iterations, {:.3}/s/t", id, target - 1, time_to_target, counter, speed);
     }
   }
+}
+
+// Calculate time of probability to find next target in seconds
+fn calculate_probability_time(current_speed: f64, next_target: usize) -> (u64, u32) {
+  let approx_speed: f64 = current_speed * NTHREADS as f64;
+  let probability: f64 = 10u32.pow(21u32 - next_target as u32).into();
+  let time_to_target = probability / approx_speed;
+  let seconds: u64 = time_to_target.trunc() as u64;
+  let nanos: u32 = (time_to_target.fract() * 1_000_000f64).trunc() as u32;
+  return (seconds, nanos);
 }
 
 // Generate new random account
