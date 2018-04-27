@@ -69,7 +69,7 @@ fn brute_force(id: i32) {
       let elapsed: f64 = duration.num_seconds() as f64;
       let mut speed: f64 = counter as f64;
       speed = speed / elapsed;
-      let (seconds, nanos) = calculate_probability_time(speed, target - 1);
+      let (seconds, nanos) = calculate_probability_time(speed, target - 1, counter);
       let time_to_target = timeago::format_5chars(Duration::new(seconds, nanos));
       println!("#{:?}\t*** FOUND TARGET {:?}; next target: {:?} in ~{:?}.\t{:?} iterations, {:.3}/s/t", id, target, target - 1, time_to_target, counter, speed);
       println!("\t{:?}\t{:?}L\t{:?}\n", length, address, phrase);
@@ -81,7 +81,7 @@ fn brute_force(id: i32) {
       let elapsed: f64 = duration.num_seconds() as f64;
       let mut speed: f64 = counter as f64;
       speed = speed / elapsed;
-      let (seconds, nanos) = calculate_probability_time(speed, target - 1);
+      let (seconds, nanos) = calculate_probability_time(speed, target - 1, counter);
       let time_to_target = timeago::format_5chars(Duration::new(seconds, nanos));
       println!("#{:?}\t\t... still working; next target: {:?} in ~{:?}.\t{:?} iterations, {:.3}/s/t", id, target - 1, time_to_target, counter, speed);
     }
@@ -89,9 +89,10 @@ fn brute_force(id: i32) {
 }
 
 // Calculate time of probability to find next target in seconds
-fn calculate_probability_time(current_speed: f64, next_target: usize) -> (u64, u32) {
+fn calculate_probability_time(current_speed: f64, next_target: usize, current_iteration: u64) -> (u64, u32) {
   let approx_speed: f64 = current_speed * NTHREADS as f64;
-  let probability: f64 = 10u32.pow(21u32 - next_target as u32).into();
+  let mut probability: f64 = 10u32.pow(21u32 - next_target as u32).into();
+  probability = probability - current_iteration as f64;
   let time_to_target = probability / approx_speed;
   let seconds: u64 = time_to_target.trunc() as u64;
   let nanos: u32 = (time_to_target.fract() * 1_000_000f64).trunc() as u32;
