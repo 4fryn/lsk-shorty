@@ -53,7 +53,7 @@ fn main() {
 fn brute_force(id: i32) {
 
   // Gather some stats
-  let mut target: usize = 18;
+  let mut target: usize = 22;
   let mut counter: u64 = 0;
   let start = Utc::now();
 
