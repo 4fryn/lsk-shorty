@@ -1,10 +1,10 @@
 # lsk-shorty
-Pure Rust-tool to brute-force short Lisk addresses.
+Pure rust-tool to brute-force short Lisk addresses.
 
-Requires Rust 1.25.0: https://rustup.rs/
+Requires Rust 2018 (nightly) 1.31.0: https://rustup.rs/
 
 ```bash
-$ curl https://sh.rustup.rs -sSf | sh
+$ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain=nightly -y
 ```
 
 Change `NTHREADS` to the number of your processor cores and make sure you compile it in optimized `--release` mode:
