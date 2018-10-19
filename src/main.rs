@@ -33,7 +33,7 @@ use ethereum_types::H256;
 
 // Specify the number of threads to generate addresses
 static N_THREADS: i32 = 4;
-N_TARGET: i32 = 3;
+static N_TARGET: i32 = 5;
 
 // Main entry point
 fn main() {
@@ -51,7 +51,7 @@ fn main() {
 }
 
 // Continuously looks for accounts with short addresses
-fn brute_force(id: i32) -> bool {
+fn brute_force(id: i32 = 0, n_target: i32 = N_TARGET) -> bool {
 
   // Gather some stats
   let mut target: usize = 22;
@@ -59,7 +59,7 @@ fn brute_force(id: i32) -> bool {
   let start = Utc::now();
 
   // Brute-force random seeds until we find a very short one
-  while target > N_TARGET {
+  while target > n_target {
     counter += 1;
     let (length, phrase, address) = generate_new_account();
 
@@ -94,7 +94,7 @@ fn brute_force(id: i32) -> bool {
     }
   }
   print!("{:?}\t\t ... shutting down.", id);
-  N_TARGET <= target;
+  n_target <= target;
 }
 
 // Calculate time of probability to find next target in seconds
@@ -172,10 +172,7 @@ fn test_allways_succeed() {
 
 #[test]
 fn test_brute_force_shutdown() {
-  let _target: i32 = N_TARGET;
-  N_TARGET = 21;
-  assert!(brute_force());
-  N_TARGET = _target;
+  assert!(brute_force(0, 21));
 }
 
 #[test]
