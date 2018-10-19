@@ -111,58 +111,58 @@ fn calculate_probability_time(current_speed: f64, next_target: usize, current_it
 // Generate new random account
 fn generate_new_account() -> (usize, String, u64) {
 
-    // > "When a user creates an account, a BIP39 mnemonics (the passphrase) is
-    //    generated for the user."
-    let mnemonic_type = MnemonicType::Type12Words;
-    let language = Language::English;
-    let mnemonic = match Mnemonic::new(mnemonic_type, language, "") {
-        Ok(b) => b,
-        Err(e) => {
-            println!("e: {}", e);
-            return (std::usize::MAX, "".to_string(), std::u64::MAX);
-        }
-    };
-    let phrase = mnemonic.get_string();
+  // > "When a user creates an account, a BIP39 mnemonics (the passphrase) is
+  //    generated for the user."
+  let mnemonic_type = MnemonicType::Type12Words;
+  let language = Language::English;
+  let mnemonic = match Mnemonic::new(mnemonic_type, language, "") {
+    Ok(b) => b,
+    Err(e) => {
+      println!("e: {}", e);
+      return (std::usize::MAX, "".to_string(), std::u64::MAX);
+    }
+  };
+  let phrase = mnemonic.get_string();
 
-    // > "This passphrase is hashed using the SHA-256 hash function into a
-    //    256-bits string."
-    let mut seed = Sha256::new();
-    seed.input_str(&phrase);
-    let mut bytes = vec![0; seed.output_bytes()];
-    seed.result(&mut bytes);
+  // > "This passphrase is hashed using the SHA-256 hash function into a
+  //    256-bits string."
+  let mut seed = Sha256::new();
+  seed.input_str(&phrase);
+  let mut bytes = vec![0; seed.output_bytes()];
+  seed.result(&mut bytes);
 
-    // > "This hash is subsequently used as a seed in ed25519 to generate the
-    //    private key and derives its public key."
-    let (_priv, _publ) = ed25519::keypair(&bytes);
-    let public_key = H256(_publ);
+  // > "This hash is subsequently used as a seed in ed25519 to generate the
+  //    private key and derives its public key."
+  let (_priv, _publ) = ed25519::keypair(&bytes);
+  let public_key = H256(_publ);
 
-    // > "An address or the wallet ID is derived from the public key. The public
-    //    key is hashed using SHA-256 then the first 8 bytes of the hash are
-    //    reversed.
-    let mut hash = Sha256::new();
-    hash.input(&public_key);
-    let reversed = [
-        &hash.result_str()[14..16],
-        &hash.result_str()[12..14],
-        &hash.result_str()[10..12],
-        &hash.result_str()[8..10],
-        &hash.result_str()[6..8],
-        &hash.result_str()[4..6],
-        &hash.result_str()[2..4],
-        &hash.result_str()[0..2],
-    ].join("");
+  // > "An address or the wallet ID is derived from the public key. The public
+  //    key is hashed using SHA-256 then the first 8 bytes of the hash are
+  //    reversed.
+  let mut hash = Sha256::new();
+  hash.input(&public_key);
+  let reversed = [
+      &hash.result_str()[14..16],
+      &hash.result_str()[12..14],
+      &hash.result_str()[10..12],
+      &hash.result_str()[8..10],
+      &hash.result_str()[6..8],
+      &hash.result_str()[4..6],
+      &hash.result_str()[2..4],
+      &hash.result_str()[0..2],
+  ].join("");
 
-    // > "The account ID is the numerical representation of those 8 bytes,
-    //    with the ’L’ character appended at the end.
-    let numeric = match u64::from_str_radix(&reversed, 16) {
-        Ok(n) => n,
-        Err(e) => {
-            println!("e: {}", e);
-            return (std::usize::MAX, "".to_string(), std::u64::MAX);
-        }
-    };
-    let length: usize = numeric.to_string().len() + 1;
-    return (length, phrase, numeric);
+  // > "The account ID is the numerical representation of those 8 bytes,
+  //    with the ’L’ character appended at the end.
+  let numeric = match u64::from_str_radix(&reversed, 16) {
+    Ok(n) => n,
+    Err(e) => {
+      println!("e: {}", e);
+      return (std::usize::MAX, "".to_string(), std::u64::MAX);
+    }
+  };
+  let length: usize = numeric.to_string().len() + 1;
+  return (length, phrase, numeric);
 }
 
 #[test]
@@ -180,4 +180,29 @@ fn test_probability_calculation() {
   let (seconds, nanos) = calculate_probability_time(133.7, 13, 1337);
   assert_eq!(seconds, 186983);
   assert_eq!(nanos, 289080);
+}
+
+#[test]
+fn test_mnemonic_generic() {
+  let entropy = &[0x33, 0xE4, 0x6B, 0xB1, 0x3A, 0x74, 0x6E, 0xA4, 0x1C, 0xDD, 0xE4, 0x5C, 0x90, 0x84, 0x6A, 0x79];
+  let mnemonic = Mnemonic::from_entropy(entropy, MnemonicType::for_key_size(128).unwrap(), Language::English, "").unwrap();
+  assert_eq!("crop cash unable insane eight faith inflict route frame loud box vibrant", mnemonic.as_str());
+}
+
+#[test]
+fn test_mnemonic_generator() {
+  let (length, phrase, _address) = generate_new_account();
+
+  // should be 2 <= lenght <= 22
+  assert!(length >= 2);
+  assert!(length <= 22);
+
+  // should be valid mnemonic
+  let language = Language::English;
+  let _mnemonic = match Mnemonic::from_string(phrase, language, "".to_string()) {
+    Ok(_) => (),
+    Err(e) => {
+      panic!("{:?}", e);
+    }
+  };
 }
