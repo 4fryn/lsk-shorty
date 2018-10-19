@@ -51,7 +51,7 @@ fn main() {
 }
 
 // Continuously looks for accounts with short addresses
-fn brute_force(id: i32, n_target: i32) -> bool {
+fn brute_force(id: i32, n_target: usize) -> bool {
 
   // Gather some stats
   let mut target: usize = 22;
@@ -94,7 +94,7 @@ fn brute_force(id: i32, n_target: i32) -> bool {
     }
   }
   print!("{:?}\t\t ... shutting down.", id);
-  n_target <= target;
+  n_target <= target
 }
 
 // Calculate time of probability to find next target in seconds
