@@ -161,3 +161,8 @@ fn generate_new_account() -> (usize, String, u64) {
     let length: usize = numeric.to_string().len() + 1;
     return (length, phrase, numeric);
 }
+
+#[test]
+fn allways_succeed() {
+  assert_eq!(1 + 1, 2);
+}
