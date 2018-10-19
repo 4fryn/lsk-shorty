@@ -32,8 +32,8 @@ use crypto::digest::Digest;
 use ethereum_types::H256;
 
 // Specify the number of threads to generate addresses
-static N_THREADS: i32 = 4;
-static N_TARGET: i32 = 5;
+static N_THREADS: usize = 4;
+static N_TARGET: usize = 5;
 
 // Main entry point
 fn main() {
