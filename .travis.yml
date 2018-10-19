@@ -1,0 +1,47 @@
+language: rust
+
+matrix:
+  include:
+  
+    # GNU/Linux - Rust Beta - Build and Test
+    - env: TARGET=x86_64-unknown-linux-gnu
+      rust: beta
+      script:
+        - cargo build --verbose --all
+        - cargo test --verbose --all
+  
+    # GNU/Linux - Rust Nightly - Build
+    - env: TARGET=x86_64-unknown-linux-gnu DISABLE_TESTS=1
+      rust: nightly
+      script: cargo build --verbose
+      
+    # Darwin/OSX - Rust Beta - Build
+    - env: TARGET=x86_64-apple-darwin DISABLE_TESTS=1
+      os: osx
+      rust: beta
+      script: cargo build --verbose
+      
+    # GNU/Windows - Rust Beta - Build
+    - env: TARGET=x86_64-pc-windows-gnu DISABLE_TESTS=1
+      os: windows
+      rust: beta
+      script: cargo build --verbose
+      
+  allow_failures:
+    - env: TARGET=x86_64-unknown-linux-gnu DISABLE_TESTS=1
+      rust: nightly
+    - env: TARGET=x86_64-apple-darwin DISABLE_TESTS=1
+      os: osx
+      rust: beta
+    - env: TARGET=x86_64-pc-windows-gnu DISABLE_TESTS=1
+      os: windows
+      rust: beta
+
+cache: cargo
+before_cache:
+  - chmod -R a+r $HOME/.cargo
+  
+before_script:
+  - rustup self update
+  - source ~/.cargo/env || true
+  
