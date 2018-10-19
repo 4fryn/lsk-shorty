@@ -32,13 +32,14 @@ use crypto::digest::Digest;
 use ethereum_types::H256;
 
 // Specify the number of threads to generate addresses
-static NTHREADS: i32 = 4;
+static N_THREADS: i32 = 4;
+N_TARGET: i32 = 3;
 
 // Main entry point
 fn main() {
   let mut child_threads = vec![];
 
-  for i in 0..NTHREADS {
+  for i in 0..N_THREADS {
     child_threads.push(thread::spawn(move || {
       brute_force(i);
     }));
@@ -50,7 +51,7 @@ fn main() {
 }
 
 // Continuously looks for accounts with short addresses
-fn brute_force(id: i32) {
+fn brute_force(id: i32) -> bool {
 
   // Gather some stats
   let mut target: usize = 22;
@@ -58,7 +59,7 @@ fn brute_force(id: i32) {
   let start = Utc::now();
 
   // Brute-force random seeds until we find a very short one
-  while target > 3 {
+  while target > N_TARGET {
     counter += 1;
     let (length, phrase, address) = generate_new_account();
 
@@ -92,11 +93,13 @@ fn brute_force(id: i32) {
       );
     }
   }
+  print!("{:?}\t\t ... shutting down.", id);
+  N_TARGET <= target;
 }
 
 // Calculate time of probability to find next target in seconds
 fn calculate_probability_time(current_speed: f64, next_target: usize, current_iteration: u64) -> (u64, u32) {
-  let approx_speed: f64 = current_speed * NTHREADS as f64;
+  let approx_speed: f64 = current_speed * N_THREADS as f64;
   let mut probability: f64 = 10u32.pow(21u32 - next_target as u32).into();
   probability = probability - current_iteration as f64;
   let time_to_target = probability / approx_speed;
@@ -163,6 +166,22 @@ fn generate_new_account() -> (usize, String, u64) {
 }
 
 #[test]
-fn allways_succeed() {
+fn test_allways_succeed() {
   assert_eq!(1 + 1, 2);
+}
+
+#[test]
+fn test_brute_force_shutdown() {
+  let _target: i32 = N_TARGET;
+  N_TARGET = 21;
+  assert!(brute_force());
+  N_TARGET = _target;
+}
+
+#[test]
+fn test_probability_calculation() {
+  let (seconds, nanos) = calculate_probability_time(133.7, 11, 13333337);
+  println!("{:?}", seconds);
+  println!("{:?}", nanos);
+  assert!(false);
 }
