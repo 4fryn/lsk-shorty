@@ -1,5 +1,5 @@
-# lsk-shorty
-Pure rust-tool to brute-force short Lisk addresses.
+# lsk-shorty [![Build Status](https://travis-ci.org/4fryn/lsk-shorty.svg?branch=master)](https://travis-ci.org/4fryn/lsk-shorty)
+Pure rust-tool to brute-force short Lisk addresses. 
 
 Requires Rust 2018 (nightly) 1.30.0: https://rustup.rs/
 
