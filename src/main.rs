@@ -1,4 +1,4 @@
-// Pure Rust-tool to brute-force short Lisk addresses. 
+// Pure Rust-tool to brute-force short Lisk addresses.
 //
 // (c) 2018 by 4fryn <rust@4fry.net>
 //
@@ -51,7 +51,7 @@ fn main() {
 }
 
 // Continuously looks for accounts with short addresses
-fn brute_force(id: i32, n_target: usize) -> bool {
+fn brute_force(id: usize, n_target: usize) -> bool {
 
   // Gather some stats
   let mut target: usize = 22;
@@ -88,13 +88,13 @@ fn brute_force(id: i32, n_target: usize) -> bool {
       let (seconds, nanos) = calculate_probability_time(speed, target - 1, counter);
       let time_to_target = timeago::format_5chars(Duration::new(seconds, nanos));
       println!(
-        "#{:?}\t\t... still working; next target: {:?} in ~{:?}.\t{:?} iterations, {:.3}/s/t", 
+        "#{:?}\t\t... still working; next target: {:?} in ~{:?}.\t{:?} iterations, {:.3}/s/t",
         id, target - 1, time_to_target, counter, speed
       );
     }
   }
-  print!("{:?}\t\t ... shutting down.", id);
-  n_target <= target
+  print!("{:?}\t\t ... shutting down.\n", id);
+  n_target >= target
 }
 
 // Calculate time of probability to find next target in seconds
@@ -172,13 +172,12 @@ fn test_allways_succeed() {
 
 #[test]
 fn test_brute_force_shutdown() {
-  assert!(brute_force(0, 21));
+  assert!(brute_force(0, 20));
 }
 
 #[test]
 fn test_probability_calculation() {
-  let (seconds, nanos) = calculate_probability_time(133.7, 11, 13333337);
-  println!("{:?}", seconds);
-  println!("{:?}", nanos);
-  assert!(false);
+  let (seconds, nanos) = calculate_probability_time(133.7, 13, 1337);
+  assert_eq!(seconds, 186983);
+  assert_eq!(nanos, 289080);
 }
