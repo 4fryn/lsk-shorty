@@ -41,7 +41,7 @@ fn main() {
 
   for i in 0..N_THREADS {
     child_threads.push(thread::spawn(move || {
-      brute_force(i);
+      brute_force(i, N_TARGET);
     }));
   }
 
@@ -51,7 +51,7 @@ fn main() {
 }
 
 // Continuously looks for accounts with short addresses
-fn brute_force(id: i32 = 0, n_target: i32 = N_TARGET) -> bool {
+fn brute_force(id: i32, n_target: i32) -> bool {
 
   // Gather some stats
   let mut target: usize = 22;
