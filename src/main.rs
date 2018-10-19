@@ -71,7 +71,10 @@ fn brute_force(id: i32) {
       speed = speed / elapsed;
       let (seconds, nanos) = calculate_probability_time(speed, target - 1, counter);
       let time_to_target = timeago::format_5chars(Duration::new(seconds, nanos));
-      println!("#{:?}\t*** FOUND TARGET {:?}; next target: {:?} in ~{:?}.\t{:?} iterations, {:.3}/s/t", id, target, target - 1, time_to_target, counter, speed);
+      println!(
+        "#{:?}\t*** FOUND TARGET {:?}; next target: {:?} in ~{:?}.\t{:?} iterations, {:.3}/s/t",
+        id, target, target - 1, time_to_target, counter, speed
+      );
       println!("\t{:?}\t{:?}L\t{:?}\n", length, address, phrase);
     }
 
@@ -83,7 +86,10 @@ fn brute_force(id: i32) {
       speed = speed / elapsed;
       let (seconds, nanos) = calculate_probability_time(speed, target - 1, counter);
       let time_to_target = timeago::format_5chars(Duration::new(seconds, nanos));
-      println!("#{:?}\t\t... still working; next target: {:?} in ~{:?}.\t{:?} iterations, {:.3}/s/t", id, target - 1, time_to_target, counter, speed);
+      println!(
+        "#{:?}\t\t... still working; next target: {:?} in ~{:?}.\t{:?} iterations, {:.3}/s/t", 
+        id, target - 1, time_to_target, counter, speed
+      );
     }
   }
 }
