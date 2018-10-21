@@ -271,7 +271,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "lsk-shorty"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "bip39 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
