@@ -125,7 +125,7 @@ fn brute_force(id: usize, n_target: usize) -> bool {
         "#{:?}\t*** FOUND TARGET {:?}; next target: {:?} in ~{:?}.\t{:?} iterations, {:.3}/s/t",
         id, target, target - 1, time_to_target, counter, speed
       );
-      println!("\t{:?}\t{:?}L\t{:?}\n", length, address, phrase);
+      println!("\t{:?}\t{:?}L\t{:?}", length, address, phrase);
     }
 
     // Print regular progress updates
@@ -142,7 +142,7 @@ fn brute_force(id: usize, n_target: usize) -> bool {
       );
     }
   }
-  print!("{:?}\t\t ... shutting down.\n", id);
+  println!("#{:?}\t\t ... shutting down thread #{:?}: final target found.", id, id);
   n_target >= target
 }
 
