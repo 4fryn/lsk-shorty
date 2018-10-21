@@ -19,6 +19,7 @@ extern crate bip39;
 extern crate clap;
 extern crate crypto;
 extern crate chrono;
+extern crate rand;
 extern crate timeago;
 extern crate ethereum_types;
 
@@ -31,6 +32,7 @@ use chrono::Utc;
 use crypto::ed25519;
 use crypto::sha2::Sha256;
 use crypto::digest::Digest;
+use rand::Rng;
 use ethereum_types::H256;
 
 #[derive(Default)]
@@ -110,7 +112,7 @@ fn brute_force(id: usize, n_target: usize) -> bool {
   // Brute-force random seeds until we find a very short one
   while target > n_target {
     counter += 1;
-    let (length, phrase, address) = generate_new_account();
+    let (length, phrase, address) = generate_new_account_bip39();
 
     // Only print short phrases to standard-out
     if length < target || length < 12 {
@@ -156,8 +158,8 @@ fn calculate_probability_time(current_speed: f64, next_target: usize, current_it
   return (seconds, nanos);
 }
 
-// Generate new random account
-fn generate_new_account() -> (usize, String, u64) {
+// Generate new random account with BIP-39 seed
+fn generate_new_account_bip39() -> (usize, String, u64) {
 
   // > "When a user creates an account, a BIP39 mnemonics (the passphrase) is
   //    generated for the user."
@@ -213,6 +215,46 @@ fn generate_new_account() -> (usize, String, u64) {
   return (length, phrase, numeric);
 }
 
+// Generate new random account without BIP-39 seed
+fn generate_new_account_fast() -> (usize, u64) {
+
+  let mut rng = rand::thread_rng();
+  let bytes: [u8; 32] = rng.gen();
+
+  // > "This hash is subsequently used as a seed in ed25519 to generate the
+  //    private key and derives its public key."
+  let (_priv, _publ) = ed25519::keypair(&bytes);
+  let public_key = H256(_publ);
+
+  // > "An address or the wallet ID is derived from the public key. The public
+  //    key is hashed using SHA-256 then the first 8 bytes of the hash are
+  //    reversed.
+  let mut hash = Sha256::new();
+  hash.input(&public_key);
+  let reversed = [
+      &hash.result_str()[14..16],
+      &hash.result_str()[12..14],
+      &hash.result_str()[10..12],
+      &hash.result_str()[8..10],
+      &hash.result_str()[6..8],
+      &hash.result_str()[4..6],
+      &hash.result_str()[2..4],
+      &hash.result_str()[0..2],
+  ].join("");
+
+  // > "The account ID is the numerical representation of those 8 bytes,
+  //    with the ’L’ character appended at the end.
+  let numeric = match u64::from_str_radix(&reversed, 16) {
+    Ok(n) => n,
+    Err(e) => {
+      println!("e: {}", e);
+      return (std::usize::MAX, std::u64::MAX);
+    }
+  };
+  let length: usize = numeric.to_string().len() + 1;
+  return (length, numeric);
+}
+
 #[test]
 fn test_allways_succeed() {
   assert_eq!(1 + 1, 2);
@@ -239,7 +281,7 @@ fn test_mnemonic_generic() {
 
 #[test]
 fn test_mnemonic_generator() {
-  let (length, phrase, _address) = generate_new_account();
+  let (length, phrase, _address) = generate_new_account_bip39();
 
   // should be 2 <= lenght <= 22
   assert!(length >= 2);
