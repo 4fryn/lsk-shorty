@@ -1,4 +1,4 @@
-// Pure Rust-tool to brute-force short Lisk addresses.
+// ⚡ Pure Rust-tool to brute-force short Lisk addresses.
 //
 // (c) 2018 by 4fryn <rust@4fry.net>
 //
@@ -16,6 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 extern crate bip39;
+extern crate clap;
 extern crate crypto;
 extern crate chrono;
 extern crate timeago;
@@ -25,6 +26,7 @@ use std::u64;
 use std::thread;
 use std::time::Duration;
 use bip39::{Language, Mnemonic, MnemonicType};
+use clap::{Arg, App};
 use chrono::Utc;
 use crypto::ed25519;
 use crypto::sha2::Sha256;
@@ -39,6 +41,8 @@ static N_TARGET: usize = 5;
 fn main() {
   let mut child_threads = vec![];
 
+  parse_config();
+
   for i in 0..N_THREADS {
     child_threads.push(thread::spawn(move || {
       brute_force(i, N_TARGET);
@@ -48,6 +52,46 @@ fn main() {
   for c in child_threads {
     let _ = c.join();
   }
+}
+
+// Setup help and parse CLI flags
+fn parse_config() {
+
+  let usage = App::new("lsk-shorty")
+                      .version("0.0.4")
+                      .author("4fryn <rust@4fry.net>")
+                      .about("⚡ Pure rust-tool to brute-force short Lisk addresses.")
+                      .arg(Arg::with_name("NUM_LENGTH")
+                                        .short("l")
+                                        .long("target")
+                                        .help("Set the target address length you are looking for. (Default: 10)")
+                                        .takes_value(true))
+                      .arg(Arg::with_name("NUM_THREADS")
+                                        .short("t")
+                                        .long("threads")
+                                        .help("Set the number of threads to generate addresses. (Default: 4)")
+                                        .takes_value(true))
+                      .arg(Arg::with_name("MODE_FAST")
+                                        .short("x")
+                                        .long("fast")
+                                        .help("Enable fast mode by disabling generation of valid BIP-39 phrases."))
+                      .get_matches();
+
+  if usage.is_present("NUM_LENGTH") {
+    let _target: usize = usage.value_of("NUM_LENGTH")
+                              .unwrap_or("10")
+                              .parse::<usize>()
+                              .expect("NUM_LENGTH should be numberic.");
+  }
+
+  if usage.is_present("NUM_THREADS") {
+    let _threads: usize = usage.value_of("NUM_THREADS")
+                              .unwrap_or("4")
+                              .parse::<usize>()
+                              .expect("NUM_THREADS should be numberic.");
+  }
+
+  let _fast = usage.is_present("MODE_FAST");
 }
 
 // Continuously looks for accounts with short addresses
