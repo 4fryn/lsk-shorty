@@ -1,6 +1,6 @@
 [package]
 name = "lsk-shorty"
-version = "0.0.4"
+version = "0.0.5"
 authors = [ "4fryn <rust@4fry.net>" ]
 edition = '2018'
 
@@ -12,6 +12,7 @@ codecov = { repository = "4fryn/lsk-shorty", branch = "master", service = "githu
 bip39 = "0.5.0"
 chrono = "0.4.2"
 clap = "2.32.0"
+rand = "0.5.5"
 timeago = "0.1.5"
 rust-crypto = "0.2.36"
 ethereum-types = "0.3.1"
