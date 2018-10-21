@@ -1,4 +1,4 @@
-// Pure Rust-tool to brute-force short Lisk addresses.
+// ⚡ Pure Rust-tool to brute-force short Lisk addresses.
 //
 // (c) 2018 by 4fryn <rust@4fry.net>
 //
@@ -16,6 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 extern crate bip39;
+extern crate clap;
 extern crate crypto;
 extern crate chrono;
 extern crate timeago;
@@ -25,29 +26,77 @@ use std::u64;
 use std::thread;
 use std::time::Duration;
 use bip39::{Language, Mnemonic, MnemonicType};
+use clap::{Arg, App};
 use chrono::Utc;
 use crypto::ed25519;
 use crypto::sha2::Sha256;
 use crypto::digest::Digest;
 use ethereum_types::H256;
 
-// Specify the number of threads to generate addresses
-static N_THREADS: usize = 4;
-static N_TARGET: usize = 5;
+#[derive(Default)]
+pub struct Config {
+  pub num_threads: usize,
+  pub num_length: usize,
+  pub mode_fast: bool,
+}
 
 // Main entry point
 fn main() {
   let mut child_threads = vec![];
 
-  for i in 0..N_THREADS {
+  let config = parse_config();
+  let l = config.num_length;
+
+  if config.mode_fast {
+    panic!("Fast mode is unimplemented!");
+  }
+
+  for i in 0..config.num_threads {
     child_threads.push(thread::spawn(move || {
-      brute_force(i, N_TARGET);
+      brute_force(i, l);
     }));
   }
 
   for c in child_threads {
     let _ = c.join();
   }
+}
+
+// Setup help and parse CLI flags
+fn parse_config() -> Config {
+  let mut config = Config::default();
+
+  let usage = App::new("lsk-shorty")
+                      .version("0.0.4")
+                      .author("4fryn <rust@4fry.net>")
+                      .about("⚡ Pure rust-tool to brute-force short Lisk addresses.")
+                      .arg(Arg::with_name("NUM_LENGTH")
+                                        .short("l")
+                                        .long("target")
+                                        .help("Set the target address length you are looking for. (Default: 10)")
+                                        .takes_value(true))
+                      .arg(Arg::with_name("NUM_THREADS")
+                                        .short("t")
+                                        .long("threads")
+                                        .help("Set the number of threads to generate addresses. (Default: 4)")
+                                        .takes_value(true))
+                      .arg(Arg::with_name("MODE_FAST")
+                                        .short("x")
+                                        .long("fast")
+                                        .help("Enable fast mode by disabling generation of valid BIP-39 phrases. (Unimplemented)"))
+                      .get_matches();
+
+  config.num_length = usage.value_of("NUM_LENGTH")
+                              .unwrap_or("10")
+                              .parse::<usize>()
+                              .expect("NUM_LENGTH should be numeric.");
+  config.num_threads = usage.value_of("NUM_THREADS")
+                              .unwrap_or("4")
+                              .parse::<usize>()
+                              .expect("NUM_THREADS should be numeric.");
+  config.mode_fast = usage.is_present("MODE_FAST");
+
+  config
 }
 
 // Continuously looks for accounts with short addresses
@@ -76,7 +125,7 @@ fn brute_force(id: usize, n_target: usize) -> bool {
         "#{:?}\t*** FOUND TARGET {:?}; next target: {:?} in ~{:?}.\t{:?} iterations, {:.3}/s/t",
         id, target, target - 1, time_to_target, counter, speed
       );
-      println!("\t{:?}\t{:?}L\t{:?}\n", length, address, phrase);
+      println!("\t{:?}\t{:?}L\t{:?}", length, address, phrase);
     }
 
     // Print regular progress updates
@@ -93,16 +142,15 @@ fn brute_force(id: usize, n_target: usize) -> bool {
       );
     }
   }
-  print!("{:?}\t\t ... shutting down.\n", id);
+  println!("#{:?}\t\t ... shutting down thread #{:?}: final target found.", id, id);
   n_target >= target
 }
 
 // Calculate time of probability to find next target in seconds
 fn calculate_probability_time(current_speed: f64, next_target: usize, current_iteration: u64) -> (u64, u32) {
-  let approx_speed: f64 = current_speed * N_THREADS as f64;
   let mut probability: f64 = 10u32.pow(21u32 - next_target as u32).into();
   probability = probability - current_iteration as f64;
-  let time_to_target = probability / approx_speed;
+  let time_to_target = probability / current_speed;
   let seconds: u64 = time_to_target.trunc() as u64;
   let nanos: u32 = (time_to_target.fract() * 1_000_000f64).trunc() as u32;
   return (seconds, nanos);
@@ -178,8 +226,8 @@ fn test_brute_force_shutdown() {
 #[test]
 fn test_probability_calculation() {
   let (seconds, nanos) = calculate_probability_time(133.7, 13, 1337);
-  assert_eq!(seconds, 186983);
-  assert_eq!(nanos, 289080);
+  assert_eq!(seconds, 747933);
+  assert_eq!(nanos, 156320);
 }
 
 #[test]
