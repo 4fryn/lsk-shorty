@@ -23,6 +23,7 @@ extern crate rand;
 extern crate timeago;
 extern crate ethereum_types;
 
+use std::str;
 use std::u64;
 use std::thread;
 use std::time::Duration;
@@ -48,14 +49,11 @@ fn main() {
 
   let config = parse_config();
   let l = config.num_length;
-
-  if config.mode_fast {
-    panic!("Fast mode is unimplemented!");
-  }
+  let x = config.mode_fast;
 
   for i in 0..config.num_threads {
     child_threads.push(thread::spawn(move || {
-      brute_force(i, l);
+      brute_force(i, l, x);
     }));
   }
 
@@ -85,7 +83,7 @@ fn parse_config() -> Config {
                       .arg(Arg::with_name("MODE_FAST")
                                         .short("x")
                                         .long("fast")
-                                        .help("Enable fast mode by disabling generation of valid BIP-39 phrases. (Unimplemented)"))
+                                        .help("Enable fast mode by disabling generation of valid BIP-39 phrases."))
                       .get_matches();
 
   config.num_length = usage.value_of("NUM_LENGTH")
@@ -102,7 +100,7 @@ fn parse_config() -> Config {
 }
 
 // Continuously looks for accounts with short addresses
-fn brute_force(id: usize, n_target: usize) -> bool {
+fn brute_force(id: usize, n_target: usize, m_fast: bool) -> bool {
 
   // Gather some stats
   let mut target: usize = 22;
@@ -112,7 +110,7 @@ fn brute_force(id: usize, n_target: usize) -> bool {
   // Brute-force random seeds until we find a very short one
   while target > n_target {
     counter += 1;
-    let (length, phrase, address) = generate_new_account_bip39();
+    let (length, phrase, address) = generate_new_account(!m_fast);
 
     // Only print short phrases to standard-out
     if length < target || length < 12 {
@@ -158,33 +156,50 @@ fn calculate_probability_time(current_speed: f64, next_target: usize, current_it
   return (seconds, nanos);
 }
 
-// Generate new random account with BIP-39 seed
-fn generate_new_account_bip39() -> (usize, String, u64) {
+// Generate new random account with or without BIP-39 seed
+fn generate_new_account(bip39: bool) -> (usize, String, u64) {
 
-  // > "When a user creates an account, a BIP39 mnemonics (the passphrase) is
-  //    generated for the user."
-  let mnemonic_type = MnemonicType::Type12Words;
-  let language = Language::English;
-  let mnemonic = match Mnemonic::new(mnemonic_type, language, "") {
-    Ok(b) => b,
-    Err(e) => {
-      println!("e: {}", e);
-      return (std::usize::MAX, "".to_string(), std::u64::MAX);
-    }
-  };
-  let phrase = mnemonic.get_string();
+  let phrase;
+  let public_key;
 
-  // > "This passphrase is hashed using the SHA-256 hash function into a
-  //    256-bits string."
-  let mut seed = Sha256::new();
-  seed.input_str(&phrase);
-  let mut bytes = vec![0; seed.output_bytes()];
-  seed.result(&mut bytes);
+  if bip39 {
+    // > "When a user creates an account, a BIP39 mnemonics (the passphrase) is
+    //    generated for the user."
+    let mnemonic_type = MnemonicType::Type12Words;
+    let language = Language::English;
+    let mnemonic = match Mnemonic::new(mnemonic_type, language, "") {
+      Ok(b) => b,
+      Err(e) => {
+        println!("e: {}", e);
+        return (std::usize::MAX, "".to_string(), std::u64::MAX);
+      }
+    };
+    phrase = mnemonic.get_string();
 
-  // > "This hash is subsequently used as a seed in ed25519 to generate the
-  //    private key and derives its public key."
-  let (_priv, _publ) = ed25519::keypair(&bytes);
-  let public_key = H256(_publ);
+    // > "This passphrase is hashed using the SHA-256 hash function into a
+    //    256-bits string."
+    let mut seed = Sha256::new();
+    seed.input_str(&phrase);
+    let mut bytes = vec![0; seed.output_bytes()];
+    seed.result(&mut bytes);
+
+    // > "This hash is subsequently used as a seed in ed25519 to generate the
+    //    private key and derives its public key."
+    let (_priv, _publ) = ed25519::keypair(&bytes);
+    public_key = H256(_publ);
+  } else {
+    let mut rng = rand::thread_rng();
+    let bytes: [u8; 32] = rng.gen();
+    let (_priv, _publ) = ed25519::keypair(&bytes);
+    let _phrase = match str::from_utf8(&_priv) {
+      Ok(k) => k,
+      Err(e) => {
+        panic!("e: {}", e);
+      }
+    };
+    phrase = _phrase.to_string();
+    public_key = H256(_publ);
+  }
 
   // > "An address or the wallet ID is derived from the public key. The public
   //    key is hashed using SHA-256 then the first 8 bytes of the hash are
@@ -207,52 +222,11 @@ fn generate_new_account_bip39() -> (usize, String, u64) {
   let numeric = match u64::from_str_radix(&reversed, 16) {
     Ok(n) => n,
     Err(e) => {
-      println!("e: {}", e);
-      return (std::usize::MAX, "".to_string(), std::u64::MAX);
+      panic!("e: {}", e);
     }
   };
   let length: usize = numeric.to_string().len() + 1;
   return (length, phrase, numeric);
-}
-
-// Generate new random account without BIP-39 seed
-fn generate_new_account_fast() -> (usize, u64) {
-
-  let mut rng = rand::thread_rng();
-  let bytes: [u8; 32] = rng.gen();
-
-  // > "This hash is subsequently used as a seed in ed25519 to generate the
-  //    private key and derives its public key."
-  let (_priv, _publ) = ed25519::keypair(&bytes);
-  let public_key = H256(_publ);
-
-  // > "An address or the wallet ID is derived from the public key. The public
-  //    key is hashed using SHA-256 then the first 8 bytes of the hash are
-  //    reversed.
-  let mut hash = Sha256::new();
-  hash.input(&public_key);
-  let reversed = [
-      &hash.result_str()[14..16],
-      &hash.result_str()[12..14],
-      &hash.result_str()[10..12],
-      &hash.result_str()[8..10],
-      &hash.result_str()[6..8],
-      &hash.result_str()[4..6],
-      &hash.result_str()[2..4],
-      &hash.result_str()[0..2],
-  ].join("");
-
-  // > "The account ID is the numerical representation of those 8 bytes,
-  //    with the ’L’ character appended at the end.
-  let numeric = match u64::from_str_radix(&reversed, 16) {
-    Ok(n) => n,
-    Err(e) => {
-      println!("e: {}", e);
-      return (std::usize::MAX, std::u64::MAX);
-    }
-  };
-  let length: usize = numeric.to_string().len() + 1;
-  return (length, numeric);
 }
 
 #[test]
@@ -262,7 +236,8 @@ fn test_allways_succeed() {
 
 #[test]
 fn test_brute_force_shutdown() {
-  assert!(brute_force(0, 20));
+  assert!(brute_force(0, 18, true));
+  assert!(brute_force(1, 20, false));
 }
 
 #[test]
@@ -281,7 +256,7 @@ fn test_mnemonic_generic() {
 
 #[test]
 fn test_mnemonic_generator() {
-  let (length, phrase, _address) = generate_new_account_bip39();
+  let (length, phrase, _address) = generate_new_account(true);
 
   // should be 2 <= lenght <= 22
   assert!(length >= 2);
