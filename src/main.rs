@@ -33,19 +33,27 @@ use crypto::sha2::Sha256;
 use crypto::digest::Digest;
 use ethereum_types::H256;
 
-// Specify the number of threads to generate addresses
-static N_THREADS: usize = 4;
-static N_TARGET: usize = 5;
+#[derive(Default)]
+pub struct Config {
+  pub num_threads: usize,
+  pub num_length: usize,
+  pub mode_fast: bool,
+}
 
 // Main entry point
 fn main() {
   let mut child_threads = vec![];
 
-  parse_config();
+  let config = parse_config();
+  let l = config.num_length;
 
-  for i in 0..N_THREADS {
+  if config.mode_fast {
+    panic!("Fast mode is unimplemented!");
+  }
+
+  for i in 0..config.num_threads {
     child_threads.push(thread::spawn(move || {
-      brute_force(i, N_TARGET);
+      brute_force(i, l);
     }));
   }
 
@@ -55,7 +63,8 @@ fn main() {
 }
 
 // Setup help and parse CLI flags
-fn parse_config() {
+fn parse_config() -> Config {
+  let mut config = Config::default();
 
   let usage = App::new("lsk-shorty")
                       .version("0.0.4")
@@ -74,24 +83,20 @@ fn parse_config() {
                       .arg(Arg::with_name("MODE_FAST")
                                         .short("x")
                                         .long("fast")
-                                        .help("Enable fast mode by disabling generation of valid BIP-39 phrases."))
+                                        .help("Enable fast mode by disabling generation of valid BIP-39 phrases. (Unimplemented)"))
                       .get_matches();
 
-  if usage.is_present("NUM_LENGTH") {
-    let _target: usize = usage.value_of("NUM_LENGTH")
+  config.num_length = usage.value_of("NUM_LENGTH")
                               .unwrap_or("10")
                               .parse::<usize>()
-                              .expect("NUM_LENGTH should be numberic.");
-  }
-
-  if usage.is_present("NUM_THREADS") {
-    let _threads: usize = usage.value_of("NUM_THREADS")
+                              .expect("NUM_LENGTH should be numeric.");
+  config.num_threads = usage.value_of("NUM_THREADS")
                               .unwrap_or("4")
                               .parse::<usize>()
-                              .expect("NUM_THREADS should be numberic.");
-  }
+                              .expect("NUM_THREADS should be numeric.");
+  config.mode_fast = usage.is_present("MODE_FAST");
 
-  let _fast = usage.is_present("MODE_FAST");
+  config
 }
 
 // Continuously looks for accounts with short addresses
@@ -143,10 +148,9 @@ fn brute_force(id: usize, n_target: usize) -> bool {
 
 // Calculate time of probability to find next target in seconds
 fn calculate_probability_time(current_speed: f64, next_target: usize, current_iteration: u64) -> (u64, u32) {
-  let approx_speed: f64 = current_speed * N_THREADS as f64;
   let mut probability: f64 = 10u32.pow(21u32 - next_target as u32).into();
   probability = probability - current_iteration as f64;
-  let time_to_target = probability / approx_speed;
+  let time_to_target = probability / current_speed;
   let seconds: u64 = time_to_target.trunc() as u64;
   let nanos: u32 = (time_to_target.fract() * 1_000_000f64).trunc() as u32;
   return (seconds, nanos);
