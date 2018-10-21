@@ -226,8 +226,8 @@ fn test_brute_force_shutdown() {
 #[test]
 fn test_probability_calculation() {
   let (seconds, nanos) = calculate_probability_time(133.7, 13, 1337);
-  assert_eq!(seconds, 186983);
-  assert_eq!(nanos, 289080);
+  assert_eq!(seconds, 747933);
+  assert_eq!(nanos, 156320);
 }
 
 #[test]
